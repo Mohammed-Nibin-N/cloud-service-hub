@@ -1,23 +1,9 @@
 import { Router } from 'express';
 import type { Request, Response } from 'express';
+import { getNextRequestId, createRequest, getAllRequests } from '../db.js';
+import type { CreateRequestBody } from '../types.js';
 
 const router = Router();
-
-// In-memory store
-interface StoredRequest {
-  requestId: string;
-  projectName: string;
-  awsAccount: string;
-  environment: string;
-  bucketName: string;
-  filePath?: string;
-  justification: string;
-  notificationEmails: string[];
-  createdAt: string;
-}
-
-const requests: StoredRequest[] = [];
-let requestCounter = 1001;
 
 // POST /api/requests — Create a new request
 router.post('/', (req: Request, res: Response) => {
@@ -29,7 +15,7 @@ router.post('/', (req: Request, res: Response) => {
     filePath,
     justification,
     notificationEmails,
-  } = req.body;
+  } = req.body as CreateRequestBody;
 
   // Basic validation
   if (!projectName || !awsAccount || !environment || !bucketName || !justification || !notificationEmails) {
@@ -40,35 +26,52 @@ router.post('/', (req: Request, res: Response) => {
     return;
   }
 
-  // Generate request ID
-  const requestId = `CSH-${requestCounter++}`;
+  try {
+    const requestId = getNextRequestId();
 
-  const newRequest: StoredRequest = {
-    requestId,
-    projectName,
-    awsAccount,
-    environment,
-    bucketName,
-    filePath: filePath || undefined,
-    justification,
-    notificationEmails: Array.isArray(notificationEmails) ? notificationEmails : [notificationEmails],
-    createdAt: new Date().toISOString(),
-  };
+    const emailsStr = Array.isArray(notificationEmails)
+      ? notificationEmails.join(', ')
+      : String(notificationEmails);
 
-  requests.push(newRequest);
+    createRequest({
+      requestId,
+      projectName,
+      awsAccountNumber: awsAccount,
+      environment,
+      accessTarget: bucketName,
+      notificationEmails: emailsStr,
+      justification,
+      filePath: filePath || null,
+    });
 
-  console.log(`[${new Date().toISOString()}] New request created: ${requestId} for ${projectName}`);
+    console.log(`[${new Date().toISOString()}] New request created: ${requestId} for ${projectName}`);
 
-  res.status(201).json({
-    success: true,
-    requestId,
-    message: 'Request submitted successfully',
-  });
+    res.status(201).json({
+      success: true,
+      requestId,
+      message: 'Request submitted successfully',
+    });
+  } catch (err) {
+    console.error('Failed to create request:', err);
+    res.status(500).json({
+      error: 'Internal server error',
+      message: 'Failed to save request. Please try again.',
+    });
+  }
 });
 
-// GET /api/requests — List all requests (for debugging)
+// GET /api/requests — List all requests
 router.get('/', (_req: Request, res: Response) => {
-  res.json({ requests, total: requests.length });
+  try {
+    const requests = getAllRequests();
+    res.json({ requests, total: requests.length });
+  } catch (err) {
+    console.error('Failed to fetch requests:', err);
+    res.status(500).json({
+      error: 'Internal server error',
+      message: 'Failed to retrieve requests.',
+    });
+  }
 });
 
 export { router as requestsRouter };
