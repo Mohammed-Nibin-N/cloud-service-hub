@@ -2,6 +2,7 @@ import { Link, useLocation } from 'react-router-dom';
 import gyLogo from '../assets/GY Logo.png';
 
 interface RequestState {
+  requestId: string;
   projectName: string;
   awsAccount: string;
   environment: string;
@@ -56,7 +57,7 @@ function RequestSuccessPage() {
             </div>
             <div>
               <p className="text-xs text-slate-500 uppercase tracking-wider">Request ID</p>
-              <p className="text-lg font-semibold text-accent-400">CSH-1001</p>
+              <p className="text-lg font-semibold text-accent-400">{state?.requestId || 'CSH-0000'}</p>
             </div>
           </div>
 
