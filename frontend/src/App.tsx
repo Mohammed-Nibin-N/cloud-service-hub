@@ -3,6 +3,7 @@ import HomePage from './pages/HomePage';
 import DataUploadAccessPage from './pages/DataUploadAccessPage';
 import SecureUploadRequestPage from './pages/SecureUploadRequestPage';
 import RequestSuccessPage from './pages/RequestSuccessPage';
+import AdminDashboardPage from './pages/AdminDashboardPage';
 
 const router = createBrowserRouter([
   {
@@ -20,6 +21,10 @@ const router = createBrowserRouter([
   {
     path: '/request-success',
     element: <RequestSuccessPage />,
+  },
+  {
+    path: '/admin',
+    element: <AdminDashboardPage />,
   },
 ]);
 

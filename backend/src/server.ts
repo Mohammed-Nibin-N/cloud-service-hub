@@ -1,6 +1,8 @@
 import express from 'express';
 import cors from 'cors';
 import { requestsRouter } from './routes/requests.js';
+import { awsAccountsRouter } from './routes/aws-accounts.js';
+import { startProvisioningWorker } from './provisioning.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -11,6 +13,7 @@ app.use(express.json());
 
 // Routes
 app.use('/api/requests', requestsRouter);
+app.use('/api/aws-accounts', awsAccountsRouter);
 
 // Health check
 app.get('/api/health', (_req, res) => {
@@ -19,4 +22,7 @@ app.get('/api/health', (_req, res) => {
 
 app.listen(PORT, () => {
   console.log(`Cloud Service Hub API running on http://localhost:${PORT}`);
+
+  // Start background provisioning worker
+  startProvisioningWorker();
 });

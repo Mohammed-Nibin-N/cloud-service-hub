@@ -1,33 +1,16 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import gyLogo from '../assets/GY Logo.png';
 
-const PROJECTS = [
-  'Dealer Analytics',
-  'Sales Portal',
-  'GoodyearCare',
-  'Warranty Platform',
-] as const;
-
-const AWS_ACCOUNT_MAP: Record<string, string> = {
-  'Dealer Analytics': '123456789012',
-  'Sales Portal': '234567890123',
-  'GoodyearCare': '345678901234',
-  'Warranty Platform': '456789012345',
-};
-
-const BUCKET_MAP: Record<string, string[]> = {
-  'Dealer Analytics': ['dealer-dev-data', 'dealer-prod-data'],
-  'Sales Portal': ['sales-dev-data', 'sales-prod-data'],
-  'GoodyearCare': ['gycare-dev-files', 'gycare-prod-files'],
-  'Warranty Platform': ['warranty-dev-files', 'warranty-prod-files'],
-};
-
-const ENVIRONMENTS = ['DEV', 'QA', 'PROD'] as const;
+interface AwsAccount {
+  accountName: string;
+  accountNumber: string;
+  environment: string;
+  buckets: string[];
+}
 
 interface FormErrors {
-  projectName?: string;
-  environment?: string;
+  awsAccount?: string;
   bucketName?: string;
   justification?: string;
   notificationEmails?: string;
@@ -36,8 +19,8 @@ interface FormErrors {
 function SecureUploadRequestPage() {
   const navigate = useNavigate();
 
-  const [projectName, setProjectName] = useState('');
-  const [environment, setEnvironment] = useState('');
+  const [awsAccounts, setAwsAccounts] = useState<AwsAccount[]>([]);
+  const [selectedAccountName, setSelectedAccountName] = useState('');
   const [bucketName, setBucketName] = useState('');
   const [filePath, setFilePath] = useState('');
   const [justification, setJustification] = useState('');
@@ -47,18 +30,26 @@ function SecureUploadRequestPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
 
-  const awsAccount = useMemo(() => {
-    return projectName ? AWS_ACCOUNT_MAP[projectName] || '' : '';
-  }, [projectName]);
+  // Fetch AWS accounts from backend config
+  useEffect(() => {
+    fetch('http://localhost:3001/api/aws-accounts')
+      .then((res) => res.json())
+      .then((data) => setAwsAccounts(data.accounts || []))
+      .catch(() => setSubmitError('Failed to load AWS accounts configuration'));
+  }, []);
+
+  const selectedAccount = useMemo(() => {
+    return awsAccounts.find((a) => a.accountName === selectedAccountName) || null;
+  }, [awsAccounts, selectedAccountName]);
 
   const availableBuckets = useMemo(() => {
-    return projectName ? BUCKET_MAP[projectName] || [] : [];
-  }, [projectName]);
+    return selectedAccount?.buckets || [];
+  }, [selectedAccount]);
 
-  const handleProjectChange = (value: string) => {
-    setProjectName(value);
+  const handleAccountChange = (value: string) => {
+    setSelectedAccountName(value);
     setBucketName('');
-    setTouched((prev) => ({ ...prev, projectName: true }));
+    setTouched((prev) => ({ ...prev, awsAccount: true }));
   };
 
   const validateGoodyearEmail = (email: string): boolean => {
@@ -78,9 +69,8 @@ function SecureUploadRequestPage() {
 
   const validate = (): FormErrors => {
     const newErrors: FormErrors = {};
-    if (!projectName) newErrors.projectName = 'Project Name is required';
-    if (!environment) newErrors.environment = 'Environment is required';
-    if (!bucketName) newErrors.bucketName = 'S3 Bucket Name is required';
+    if (!selectedAccountName) newErrors.awsAccount = 'AWS Account is required';
+    if (!bucketName) newErrors.bucketName = 'S3 Bucket is required';
     if (!justification.trim()) newErrors.justification = 'Business Justification is required';
     const emailValidation = validateAllEmails(notificationEmails);
     if (!emailValidation.valid) {
@@ -91,13 +81,12 @@ function SecureUploadRequestPage() {
 
   const isFormValid = useMemo(() => {
     return (
-      projectName !== '' &&
-      environment !== '' &&
+      selectedAccountName !== '' &&
       bucketName !== '' &&
       justification.trim() !== '' &&
       validateAllEmails(notificationEmails).valid
     );
-  }, [projectName, environment, bucketName, justification, notificationEmails]);
+  }, [selectedAccountName, bucketName, justification, notificationEmails]);
 
   const handleBlur = (field: string) => {
     setTouched((prev) => ({ ...prev, [field]: true }));
@@ -110,14 +99,13 @@ function SecureUploadRequestPage() {
     setErrors(validationErrors);
     setSubmitError('');
     setTouched({
-      projectName: true,
-      environment: true,
+      awsAccount: true,
       bucketName: true,
       justification: true,
       notificationEmails: true,
     });
 
-    if (Object.keys(validationErrors).length === 0) {
+    if (Object.keys(validationErrors).length === 0 && selectedAccount) {
       setIsSubmitting(true);
       try {
         const emails = notificationEmails.split(',').map((e) => e.trim()).filter((e) => e !== '');
@@ -125,9 +113,9 @@ function SecureUploadRequestPage() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            projectName,
-            awsAccount,
-            environment,
+            accountName: selectedAccount.accountName,
+            awsAccount: selectedAccount.accountNumber,
+            environment: selectedAccount.environment,
             bucketName,
             filePath: filePath || undefined,
             justification,
@@ -145,9 +133,9 @@ function SecureUploadRequestPage() {
         navigate('/request-success', {
           state: {
             requestId: data.requestId,
-            projectName,
-            awsAccount,
-            environment,
+            accountName: selectedAccount.accountName,
+            awsAccount: selectedAccount.accountNumber,
+            environment: selectedAccount.environment,
             bucketName,
           },
         });
@@ -208,76 +196,71 @@ function SecureUploadRequestPage() {
 
         <form onSubmit={handleSubmit} noValidate>
           <div className="bg-navy-800 border border-navy-700/50 rounded-2xl p-8 space-y-6">
-            {/* Project Name */}
+            {/* AWS Account */}
             <div>
               <label className="block text-sm font-medium text-slate-300 mb-2">
-                Project Name <span className="text-accent-400">*</span>
+                AWS Account <span className="text-accent-400">*</span>
               </label>
               <select
-                value={projectName}
-                onChange={(e) => handleProjectChange(e.target.value)}
-                onBlur={() => handleBlur('projectName')}
-                className={fieldClass('projectName')}
+                value={selectedAccountName}
+                onChange={(e) => handleAccountChange(e.target.value)}
+                onBlur={() => handleBlur('awsAccount')}
+                className={fieldClass('awsAccount')}
               >
-                <option value="" className="bg-navy-900">Select a project</option>
-                {PROJECTS.map((p) => (
-                  <option key={p} value={p} className="bg-navy-900">{p}</option>
+                <option value="" className="bg-navy-900">Select an AWS account</option>
+                {awsAccounts.map((acc) => (
+                  <option key={acc.accountNumber} value={acc.accountName} className="bg-navy-900">
+                    {acc.accountName} ({acc.accountNumber})
+                  </option>
                 ))}
               </select>
-              {touched.projectName && errors.projectName && (
-                <p className="mt-1.5 text-sm text-red-400">{errors.projectName}</p>
+              {touched.awsAccount && errors.awsAccount && (
+                <p className="mt-1.5 text-sm text-red-400">{errors.awsAccount}</p>
               )}
             </div>
 
-            {/* AWS Account Number */}
-            <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">
-                AWS Account Number <span className="text-accent-400">*</span>
-              </label>
-              <input
-                type="text"
-                value={awsAccount}
-                readOnly
-                className="w-full px-4 py-3 rounded-xl bg-navy-900/30 border border-navy-700/30 text-slate-400 cursor-not-allowed"
-                placeholder="Auto-populated based on project"
-              />
-            </div>
+            {/* Auto-populated account details */}
+            {selectedAccount && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-2">
+                    Account Number
+                  </label>
+                  <input
+                    type="text"
+                    value={selectedAccount.accountNumber}
+                    readOnly
+                    className="w-full px-4 py-3 rounded-xl bg-navy-900/30 border border-navy-700/30 text-slate-400 cursor-not-allowed text-sm font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-2">
+                    Environment
+                  </label>
+                  <input
+                    type="text"
+                    value={selectedAccount.environment}
+                    readOnly
+                    className="w-full px-4 py-3 rounded-xl bg-navy-900/30 border border-navy-700/30 text-slate-400 cursor-not-allowed text-sm"
+                  />
+                </div>
+              </div>
+            )}
 
-            {/* Environment */}
+            {/* S3 Bucket */}
             <div>
               <label className="block text-sm font-medium text-slate-300 mb-2">
-                Environment <span className="text-accent-400">*</span>
-              </label>
-              <select
-                value={environment}
-                onChange={(e) => setEnvironment(e.target.value)}
-                onBlur={() => handleBlur('environment')}
-                className={fieldClass('environment')}
-              >
-                <option value="" className="bg-navy-900">Select environment</option>
-                {ENVIRONMENTS.map((env) => (
-                  <option key={env} value={env} className="bg-navy-900">{env}</option>
-                ))}
-              </select>
-              {touched.environment && errors.environment && (
-                <p className="mt-1.5 text-sm text-red-400">{errors.environment}</p>
-              )}
-            </div>
-
-            {/* S3 Bucket Name */}
-            <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">
-                S3 Bucket Name <span className="text-accent-400">*</span>
+                S3 Bucket <span className="text-accent-400">*</span>
               </label>
               <select
                 value={bucketName}
                 onChange={(e) => setBucketName(e.target.value)}
                 onBlur={() => handleBlur('bucketName')}
-                disabled={!projectName}
-                className={`${fieldClass('bucketName')} ${!projectName ? 'opacity-50 cursor-not-allowed' : ''}`}
+                disabled={!selectedAccountName}
+                className={`${fieldClass('bucketName')} ${!selectedAccountName ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
                 <option value="" className="bg-navy-900">
-                  {projectName ? 'Select a bucket' : 'Select a project first'}
+                  {selectedAccountName ? 'Select a bucket' : 'Select an AWS account first'}
                 </option>
                 {availableBuckets.map((b) => (
                   <option key={b} value={b} className="bg-navy-900">{b}</option>

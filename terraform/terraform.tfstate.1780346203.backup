@@ -1,0 +1,111 @@
+{
+  "version": 4,
+  "terraform_version": "1.12.2",
+  "serial": 24,
+  "lineage": "78446a24-e054-4cb6-6638-944267526bf1",
+  "outputs": {
+    "aws_console_signin_url": {
+      "value": "https://526860034915.signin.aws.amazon.com/console",
+      "type": "string"
+    },
+    "aws_console_url": {
+      "value": "https://console.aws.amazon.com/s3/buckets/dealer-sales-upload?region=us-east-1",
+      "type": "string"
+    },
+    "bucket_name": {
+      "value": "dealer-sales-upload",
+      "type": "string"
+    },
+    "iam_username": {
+      "value": "dealersalesportal_csh1009_datauploader",
+      "type": "string"
+    },
+    "policy_arn": {
+      "value": "arn:aws:iam::526860034915:policy/cloud-service-hub/dealersalesportal_csh1009_datauploader-s3-access",
+      "type": "string"
+    }
+  },
+  "resources": [
+    {
+      "mode": "managed",
+      "type": "aws_iam_policy",
+      "name": "s3_upload_access",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "arn": "arn:aws:iam::526860034915:policy/cloud-service-hub/dealersalesportal_csh1009_datauploader-s3-access",
+            "attachment_count": 0,
+            "description": "Grants limited S3 access to dealer-sales-upload for dealersalesportal (NONPROD)",
+            "id": "arn:aws:iam::526860034915:policy/cloud-service-hub/dealersalesportal_csh1009_datauploader-s3-access",
+            "name": "dealersalesportal_csh1009_datauploader-s3-access",
+            "name_prefix": "",
+            "path": "/cloud-service-hub/",
+            "policy": "{\"Statement\":[{\"Action\":[\"s3:ListBucket\"],\"Effect\":\"Allow\",\"Resource\":\"arn:aws:s3:::dealer-sales-upload\",\"Sid\":\"AllowListBucket\"},{\"Action\":[\"s3:GetObject\",\"s3:PutObject\"],\"Effect\":\"Allow\",\"Resource\":\"arn:aws:s3:::dealer-sales-upload/*\",\"Sid\":\"AllowObjectAccess\"}],\"Version\":\"2012-10-17\"}",
+            "policy_id": "ANPAXVK2OENRXPIRRGLP2",
+            "tags": {
+              "Environment": "NONPROD",
+              "ManagedBy": "cloud-service-hub",
+              "Project": "dealersalesportal"
+            },
+            "tags_all": {
+              "Environment": "NONPROD",
+              "ManagedBy": "cloud-service-hub",
+              "Project": "dealersalesportal"
+            }
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "bnVsbA=="
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "aws_iam_user",
+      "name": "upload_user",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "arn": "arn:aws:iam::526860034915:user/cloud-service-hub/sales-portal-dev-user",
+            "force_destroy": false,
+            "id": "sales-portal-dev-user",
+            "name": "dealersalesportal_csh1009_datauploader",
+            "path": "/cloud-service-hub/",
+            "permissions_boundary": "",
+            "tags": {
+              "Environment": "NONPROD",
+              "ManagedBy": "cloud-service-hub",
+              "Project": "dealersalesportal"
+            },
+            "tags_all": {
+              "Environment": "NONPROD",
+              "ManagedBy": "cloud-service-hub",
+              "Project": "dealersalesportal"
+            },
+            "unique_id": "AIDAXVK2OENRU53Y4WMAU"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "bnVsbA=="
+        }
+      ]
+    }
+  ],
+  "check_results": [
+    {
+      "object_kind": "var",
+      "config_addr": "var.environment",
+      "status": "pass",
+      "objects": [
+        {
+          "object_addr": "var.environment",
+          "status": "pass"
+        }
+      ]
+    }
+  ]
+}

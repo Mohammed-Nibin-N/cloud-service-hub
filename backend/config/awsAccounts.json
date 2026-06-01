@@ -1,0 +1,8 @@
+[
+  {
+    "accountName": "Dealer Sales Portal Non-Prod",
+    "accountNumber": "526860034915",
+    "environment": "NONPROD",
+    "buckets": ["dealer-sales-upload"]
+  }
+]

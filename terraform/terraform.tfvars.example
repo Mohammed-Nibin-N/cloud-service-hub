@@ -1,0 +1,8 @@
+# Example variable values for Cloud Service Hub provisioning
+# Copy this file to terraform.tfvars and fill in your values
+
+project_name = "Sales Portal"
+environment  = "DEV"
+bucket_name  = "sales-dev-data"
+iam_username = "sales-portal-dev-user"
+aws_region   = "us-east-1"
