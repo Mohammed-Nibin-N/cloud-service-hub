@@ -30,7 +30,7 @@ resource "aws_iam_user" "upload_user" {
 
 resource "aws_iam_user_login_profile" "upload_user_login" {
   user                    = aws_iam_user.upload_user.name
-  password_reset_required = true
+  password_reset_required = false
 }
 
 # ─── IAM Policy ───────────────────────────────────────────────────────────────
@@ -43,6 +43,14 @@ resource "aws_iam_policy" "s3_upload_access" {
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
+      {
+        Sid    = "AllowListAllBuckets"
+        Effect = "Allow"
+        Action = [
+          "s3:ListAllMyBuckets"
+        ]
+        Resource = "*"
+      },
       {
         Sid    = "AllowListBucket"
         Effect = "Allow"

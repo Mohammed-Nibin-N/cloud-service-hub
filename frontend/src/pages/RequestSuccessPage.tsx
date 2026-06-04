@@ -1,9 +1,10 @@
 import { Link, useLocation } from 'react-router-dom';
 import gyLogo from '../assets/GY Logo.png';
+import { extractProjectName } from '../utils/extractProjectName';
 
 interface RequestState {
   requestId: string;
-  projectName: string;
+  accountName: string;
   awsAccount: string;
   environment: string;
   bucketName: string;
@@ -12,6 +13,7 @@ interface RequestState {
 function RequestSuccessPage() {
   const location = useLocation();
   const state = location.state as RequestState | null;
+  const projectName = state?.accountName ? extractProjectName(state.accountName) : '—';
 
   return (
     <div className="min-h-screen bg-navy-900">
@@ -68,7 +70,7 @@ function RequestSuccessPage() {
           <div className="space-y-4">
             <div className="flex justify-between items-center py-2">
               <span className="text-sm text-slate-400">Project</span>
-              <span className="text-sm font-medium text-white">{state?.projectName || '—'}</span>
+              <span className="text-sm font-medium text-white">{projectName}</span>
             </div>
             <div className="flex justify-between items-center py-2 border-t border-navy-700/20">
               <span className="text-sm text-slate-400">AWS Account Number</span>
